@@ -32,8 +32,8 @@
         <!-- <transition-group name="list" tag="div"> -->
           <!-- start loop -->
           <div class="publication" v-for="review in pendingReviews" :key="review.id">
-            <v-overlay absolute color="grey darken-1" :opacity="overlayOpacity" :value="review.overlay">
-              <v-btn
+            <v-overlay absolute color="grey darken-0" :opacity="overlayOpacity" :value="review.overlay">
+              <v-btn 
                 color="blue accent-3 white--text"
                 @click="resetReview(review)">
                 Modify review
@@ -46,13 +46,13 @@
             <div class="mentions">
               <v-row no-gutters class="mention-header">
                 <v-col cols="6">
-                  Does the bolded text in the snippet below refer to a dataset?
+                  
                 </v-col>
                 <v-col cols="3 pr-2">
-                  The bolded text correctly identifies a reference to a dataset?
+                  Does the highlighted text in the snippet refer to a dataset?
                 </v-col>
                 <v-col cols="3">
-                  The bolded text is the same dataset as the one referenced?
+                  Does the highlighted text in the snippet refer to the dataset below?
                 </v-col>
               </v-row>
               <v-row no-gutters class="mention">
@@ -61,28 +61,16 @@
                 </v-col>
                 <v-col cols="3">
                   <div class="mention-dataset">
-                    <!-- <a v-show="!!review.dataset_alias_url" :href="`${review.dataset_alias_url}`" target="_blank">{{ review.dataset_alias }}</a>
-                    <span v-show="!review.dataset_alias_url">{{ review.dataset_alias }}</span> -->
-                    <span>{{ review.dataset_alias }}</span>
+                    <br>
                   </div>
                   <v-btn-toggle dense
                     class="mention-actions" 
-                    v-model="review.dataset_alias_result"
-                    v-show="!!review.dataset_alias"
-                    @change="validateDatasetAlias(review)">
-                    <v-btn color="blue-grey darken-2 white--text" v-show="review.datasetAliasButtons()" value="1">Yes</v-btn>
-                    <v-btn color="blue-grey darken-2 white--text" v-show="review.datasetAliasButtons()" value="-1">No</v-btn>
-                    <v-btn color="blue-grey darken-2 white--text" v-show="review.datasetAliasButtons()" value="0">Unsure</v-btn>
+                    v-show="true">
+                    <v-btn :class="{'background-color':'grey', 'v-btn--active': selectButton(review, 'dataset', 1)}" @click="validateDatasetAlias(review, 1)" v-show="review.datasetAliasButtons()" value=1>Yes</v-btn>
+                    <v-btn :class="{'background-color':'grey', 'v-btn--active': selectButton(review, 'dataset', -1)}" @click="validateDatasetAlias(review, -1)" v-show="review.datasetAliasButtons()" value=-1>No</v-btn>
+                    <v-btn :class="{'background-color':'grey', 'v-btn--active': selectButton(review, 'dataset', 0)}" @click="validateDatasetAlias(review, 0)" v-show="review.datasetAliasButtons()" value=0>Unsure</v-btn>
                   </v-btn-toggle>
-                  <v-progress-circular indeterminate
-                    v-show="review.dataset_alias_loading"
-                    color="primary">
-                  </v-progress-circular>
-                  <v-icon large 
-                    v-show="review.dataset_alias_check"
-                    color="green darken-2">
-                    mdi-check-bold
-                  </v-icon>
+                  <br>
                   <span title="Nothing to review here" v-show="!review.dataset_alias">N/A</span>
                 </v-col>
                 <v-col cols="3">
@@ -92,22 +80,13 @@
                   </div>
                   <v-btn-toggle dense
                     class="mention-actions"
-                    v-model="review.dataset_parent_alias_result"
                     v-show="!!review.dataset_parent_alias"
-                    @change="validateDatasetParentAlias(review)">
-                    <v-btn color="blue-grey darken-2 white--text" v-show="review.datasetParentAliasButtons()" value="1">Yes</v-btn>
-                    <v-btn color="blue-grey darken-2 white--text" v-show="review.datasetParentAliasButtons()" value="-1">No</v-btn>
-                    <v-btn color="blue-grey darken-2 white--text" v-show="review.datasetParentAliasButtons()" value="0">Unsure</v-btn>
+                  >
+                    <v-btn :class="{'background-color':'grey', 'v-btn--active': selectButton(review, 'alias', 1)}" @click="validateDatasetParentAlias(review, 1)" v-show="review.datasetParentAliasButtons()" value=1>Yes</v-btn>
+                    <v-btn :class="{'background-color':'grey', 'v-btn--active': selectButton(review, 'alias', -1)}" @click="validateDatasetParentAlias(review, -1)" v-show="review.datasetParentAliasButtons()" value=-1>No</v-btn>
+                    <v-btn :class="{'background-color':'grey', 'v-btn--active': selectButton(review, 'alias', 0)}" @click="validateDatasetParentAlias(review, 0)" v-show="review.datasetParentAliasButtons()" value=0>Unsure</v-btn>
                   </v-btn-toggle>
-                  <v-progress-circular indeterminate
-                    v-show="review.dataset_parent_alias_loading"
-                    color="primary">
-                  </v-progress-circular>
-                  <v-icon large 
-                    v-show="review.dataset_parent_alias_check"
-                    color="green darken-2">
-                    mdi-check-bold
-                  </v-icon>
+                  <br>
                   <span title="Nothing to review here" v-show="!review.dataset_parent_alias">N/A</span>
                 </v-col>
               </v-row>
@@ -154,7 +133,7 @@ export default {
     totalPending: 0,     // how many reviews are pending
     totalReviewed: 0,    // how many reviews were completed
     pendingReviews: [],  // all reviews still pending
-    overlayOpacity: 0.8,
+    overlayOpacity: 0.5,
     pageSizeOptions: [10, 15, 20, 50],
     pageSize: 10,
     currentPage: 1, // Vuetify component starts at 1, not 0
@@ -196,17 +175,46 @@ export default {
           this.loadingReviews = false
         })
     },
-    async validateDatasetAlias(review) {
+    selectButton(review, buttonType, buttonAnswer) {    
+      //let ans = review.dataset_alias_loading
+      if(!review.dataset_alias_loading){
+        if(buttonAnswer == 1){
+          if(buttonType == "dataset"){
+            return review.dataset_correct == 1
+          }else{
+            return review.alias_correct == 1
+          }
+        }else if(buttonAnswer == 0){
+          if(buttonType == "dataset"){
+            return review.dataset_correct == 0
+          }else{
+            return review.alias_correct == 0
+          }
+        }else{
+          if(buttonType == "dataset"){
+            return review.dataset_correct == -1
+          }else{
+            return review.alias_correct == -1
+          }
+        }
+      }else{
+        return false
+      }
+    },
+    async validateDatasetAlias(review, answer) {
       review.dataset_alias_loading = true
-      let result = parseInt(review.dataset_alias_result)
+      let result = parseInt(answer)
+      review.dataset_correct = result
       reviewService.sendDatasetAliasReview(review.id, result)
         .then(() => {
           review.dataset_alias_loading = false
           review.dataset_alias_check = true
           review.dataset_mention_answered = true
+          review.dataset_alias_result = parseInt(review.dataset_correct)
           setTimeout(() => { this.checkAnswers(review) }, 500)
         })
         .catch((error) => {
+          alert("Error: unable to save answer.")
           console.warn(error); // an error means it's already answered
           if (error?.status === 409) {
             review.dataset_alias_loading = false
@@ -218,7 +226,8 @@ export default {
             throw error
           }
         })
-      // 
+
+      //@click
       // TODO delete code below after tests
       //
       //await new Promise(r => setTimeout(r, 1000))
@@ -227,17 +236,20 @@ export default {
       //await new Promise(r => setTimeout(r, 1000))
       //this.checkAnswers(review)
     },
-    async validateDatasetParentAlias(review) {
+    async validateDatasetParentAlias(review, answer) {
       review.dataset_parent_alias_loading = true
-      let result = parseInt(review.dataset_parent_alias_result)
+      let result = parseInt(answer)
+      review.alias_correct = result
       reviewService.sendDatasetParentAliasReview(review.id, result)
         .then(() => {
           review.dataset_parent_alias_loading = false
           review.dataset_parent_alias_check = true
           review.dataset_mention_parent_answered = true
+          review.dataset_parent_alias_result = parseInt(review.alias_correct)
           setTimeout(() => { this.checkAnswers(review) }, 500)
         })
         .catch((error) => {
+          alert("Error: unable to save answer.")
           console.warn(error); // an error means it's already answered
           if (error?.status === 409) {
             review.dataset_parent_alias_loading = false
@@ -275,8 +287,8 @@ export default {
     resetReview(review) {
       review.dataset_alias_result = undefined
       review.dataset_parent_alias_result = undefined
-      review.dataset_alias_check = false
-      review.dataset_parent_alias_check = false
+      review.dataset_alias_check = true
+      review.dataset_parent_alias_check = true
       review.overlay = false
       review.beingEdited = true
     },
@@ -376,4 +388,9 @@ export default {
   opacity: 0;
   transform: translateX(50px);
 }
+
+.theme--light.v-btn.v-btn--has-bg {
+    background-color: lightgrey;
+}
+
 </style>
